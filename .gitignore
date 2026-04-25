@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-journal
+.DS_Store
+.idea/
+.vscode/
