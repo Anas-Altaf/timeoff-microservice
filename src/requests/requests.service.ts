@@ -2,16 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { LeaveRequest, RequestAudit, HcmSyncEvent, Balance, DriftEvent } from '../entities';
+import { LeaveRequest, RequestAudit, HcmSyncEvent, DriftEvent } from '../entities';
 import { DomainError } from '../common/errors';
 import { canSubmit } from '../balances/domain/balance.math';
 import {
   ActorRole,
   cancelConfirmed,
-  isActive,
   RequestState,
   transition,
-  InvalidTransitionError,
 } from './domain/request.state-machine';
 import { BalancesService } from '../balances/balances.service';
 import { HcmClient, HcmRejectedError, HcmUnavailableError } from '../hcm/hcm.client';

@@ -12,4 +12,5 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci --no-audit --no-fund
+      - run: npm run lint
       - run: npm test -- --coverage

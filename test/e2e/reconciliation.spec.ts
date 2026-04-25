@@ -1,6 +1,4 @@
 import { startHarness, Harness, auth, idem, seed } from '../harness';
-import request from 'supertest';
-import { v4 as uuidv4 } from 'uuid';
 
 describe('reconciliation (FR-16..21, FR-22)', () => {
   let h: Harness;

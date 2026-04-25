@@ -1,4 +1,4 @@
-import { startHarness, Harness, auth, idem, seed } from '../harness';
+import { startHarness, Harness, auth, seed } from '../harness';
 
 describe('balances read (FR-1..4)', () => {
   let h: Harness;

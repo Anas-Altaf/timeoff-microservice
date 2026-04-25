@@ -1,6 +1,5 @@
 import { startHarness, Harness, auth, idem, seed } from '../harness';
 import request from 'supertest';
-import { v4 as uuidv4 } from 'uuid';
 
 describe('HCM client resilience (FR-13..15, NFR-5/6)', () => {
   let h: Harness;

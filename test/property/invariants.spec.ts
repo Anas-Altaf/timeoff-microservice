@@ -1,5 +1,5 @@
 import * as fc from 'fast-check';
-import { startHarness, Harness, auth, idem, seed } from '../harness';
+import { startHarness, auth, seed } from '../harness';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('property invariants I1..I5 (FR-29, NFR-7,8)', () => {
