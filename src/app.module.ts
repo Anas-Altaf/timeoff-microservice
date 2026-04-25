@@ -1,6 +1,8 @@
 import { MiddlewareConsumer, Module, NestModule, DynamicModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { LoggerModule } from 'nestjs-pino';
+import { als } from './common/correlation';
 import { ALL_ENTITIES } from './entities';
 import { InitialSchema1700000000001 } from './migrations/0001-initial-schema';
 import { BalancesService } from './balances/balances.service';
@@ -29,6 +31,11 @@ export interface AppModuleOptions {
    * synchronize=true for speed against in-memory SQLite.
    */
   useMigrations?: boolean;
+  /**
+   * NFR-11/13: optional custom pino destination stream for tests that need
+   * to capture log output.
+   */
+  loggerStream?: NodeJS.WritableStream;
 }
 
 @Module({})
@@ -37,6 +44,64 @@ export class AppModule implements NestModule {
     return {
       module: AppModule,
       imports: [
+        LoggerModule.forRoot({
+          pinoHttp: [
+            {
+              level: opts.loggerStream
+                ? 'info'
+                : process.env.LOG_LEVEL ?? (process.env.NODE_ENV === 'test' ? 'silent' : 'info'),
+              // NFR-13: redact PII at log time.
+              redact: {
+                paths: [
+                  'req.body.note',
+                  'req.body.name',
+                  'req.body.email',
+                  '*.email',
+                  '*.name',
+                  '*.note',
+                ],
+                censor: '[REDACTED]',
+              },
+              // NFR-11: bind correlationId, tenantId, employeeId, requestId
+              // pulled from AsyncLocalStorage.
+              mixin() {
+                const c = als.getStore();
+                if (!c) return {};
+                return {
+                  correlationId: c.correlationId,
+                  tenantId: c.tenantId,
+                  employeeId: c.employeeId,
+                  actorRole: c.actorRole,
+                  requestId: c.correlationId,
+                };
+              },
+              genReqId: (req: any) => {
+                const fromHeader = req.headers['x-correlation-id'];
+                return fromHeader || als.getStore()?.correlationId;
+              },
+              // Include request body in the request log so the redact paths
+              // (req.body.note, req.body.name, req.body.email) can take effect
+              // (NFR-13). pino's redact applies to whichever fields are
+              // actually serialized.
+              serializers: {
+                req(req: any) {
+                  return {
+                    id: req.id,
+                    method: req.method,
+                    url: req.url,
+                    body: req.raw?.body ?? req.body,
+                    headers: {
+                      'x-tenant-id': req.headers?.['x-tenant-id'],
+                      'x-employee-id': req.headers?.['x-employee-id'],
+                      'x-correlation-id': req.headers?.['x-correlation-id'],
+                    },
+                  };
+                },
+              },
+            },
+            opts.loggerStream as any,
+          ],
+        }),
         TypeOrmModule.forRoot({
           type: 'better-sqlite3',
           database: opts.dbPath ?? ':memory:',

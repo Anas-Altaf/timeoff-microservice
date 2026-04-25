@@ -213,7 +213,7 @@ describe('coverage booster (NFR-16)', () => {
   });
 
   // -- Drain pending: rejected branch (HCM rejects on retry) --------------
-  // -- correlation: ctx() returns store inside als.run; requireIdentity ---
+// -- correlation: ctx() returns store inside als.run; requireIdentity ---
   it('correlation_ctx_and_requireIdentity_helpers', () => {
     expect(ctx()).toBeUndefined();
     als.run({ correlationId: 'c1', tenantId: 'T', employeeId: 'E' }, () => {

@@ -27,6 +27,13 @@ describe('CircuitBreaker (NFR-5)', () => {
     cb.record(false);
     expect(cb.getState()).toBe('OPEN');
   });
+  it('outcomes window slides past windowSize', () => {
+    const cb = new CircuitBreaker(3, 0.5, 30_000, () => 0);
+    // 5 successes — window is 3, so outcomes.shift() runs twice.
+    for (let i = 0; i < 5; i++) cb.record(true);
+    expect(cb.canCall()).toBe(true);
+  });
+
   it('forceOpen / forceClose helpers', () => {
     const cb = new CircuitBreaker();
     cb.forceOpen();
