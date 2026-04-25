@@ -62,4 +62,13 @@ describe('request state machine (FR-7,8,9,10)', () => {
   it('disallowed: SUBMITTED + hcm.ack rejected', () => {
     expect(() => transition('SUBMITTED', { type: 'hcm.ack' })).toThrow(InvalidTransitionError);
   });
+  it('APPROVED falls through to invalid for non-hcm events (covers case break)', () => {
+    expect(() => transition('APPROVED', { type: 'approve', actor: 'MANAGER' })).toThrow(InvalidTransitionError);
+    expect(() => transition('APPROVED', { type: 'cancel', actor: 'EMPLOYEE', isOwner: true })).toThrow(InvalidTransitionError);
+  });
+  it('PENDING_HCM_POST falls through to invalid for non-hcm events (covers case break)', () => {
+    expect(() => transition('PENDING_HCM_POST', { type: 'approve', actor: 'MANAGER' })).toThrow(InvalidTransitionError);
+    expect(() => transition('PENDING_HCM_POST', { type: 'cancel', actor: 'EMPLOYEE', isOwner: true })).toThrow(InvalidTransitionError);
+    expect(() => transition('PENDING_HCM_POST', { type: 'hcm.unavailable' })).toThrow(InvalidTransitionError);
+  });
 });
