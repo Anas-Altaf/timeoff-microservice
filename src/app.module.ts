@@ -7,12 +7,10 @@ import { BalancesService } from './balances/balances.service';
 import { RequestsService } from './requests/requests.service';
 import { ReconciliationService } from './reconciliation/reconciliation.service';
 import { ReconciliationCron } from './reconciliation/reconciliation.cron';
-import {
-  BalancesController,
-  RequestsController,
-  InternalController,
-  HealthController,
-} from './controllers';
+import { BalancesController } from './balances/balances.controller';
+import { RequestsController } from './requests/requests.controller';
+import { InternalController } from './reconciliation/reconciliation.controller';
+import { HealthController } from './health/health.controller';
 import { CorrelationMiddleware } from './common/correlation';
 import { IdempotencyService } from './common/idempotency';
 import { HcmClient } from './hcm/hcm.client';
