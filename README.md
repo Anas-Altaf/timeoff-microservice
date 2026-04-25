@@ -78,16 +78,15 @@ See [`docs/TRD-READYON-TIMEOFF-001.md`](docs/TRD-READYON-TIMEOFF-001.md) for the
 
 ## Deviations from TRD
 
-The following items remain open relative to the TRD. They are tracked rather than hidden so that future agents can close them deterministically.
-
-1. **Branch coverage (NFR-16).** Currently 67.72%; TRD target ≥ 85%. Statement coverage (91.57%) already exceeds the 90% target. Gaps concentrated in `requests.service.ts` (60% branches), `common/correlation.ts`, `common/errors.ts`, `common/idempotency.ts`, and the post-loop fallback branch of `hcm.client.withRetry`. The jest threshold in `package.json` is still `branches: 60`; raising it to 85 is gated on those tests landing.
-2. **Migrations (NFR-15).** TypeORM is still configured with `synchronize: true` for dev/test. Production migrations have not yet been authored. `migration:generate` / `migration:run` npm scripts are not yet defined.
-3. **Structured logging with PII redaction (NFR-11, NFR-13).** The service uses Nest's default `Logger`. `nestjs-pino` integration with correlationId/tenantId/employeeId/requestId propagation through AsyncLocalStorage and redaction of `name`/`email`/`note` is not yet wired.
-4. **FR-23 dedicated e2e test.** Post-commit drift is exercised indirectly by the existing reconciliation e2e suite. A dedicated `test/e2e/fr23-post-commit-drift.spec.ts` using the mock HCM `/admin/return-stale-on-success` toggle is not yet present.
-5. **ESLint + Prettier.** Config files (`.eslintrc.cjs`, `.prettierrc`) are not yet committed; `npm run lint` is a stub. The `domain-purity.spec.ts` unit test continues to enforce NFR-17 (no framework imports under `src/**/domain/**`).
-6. **Per-feature module layout (TRD §8.2).** Controllers still live in `src/controllers.ts` and entities in `src/entities/index.ts`. Splitting into `src/{balances,requests,reconciliation,health}/*.controller.ts` and per-feature entity files is open.
+None outstanding. All previously deferred items have been closed.
 
 Closed in the most recent pass:
 
+- **NFR-15 Migrations.** Production data source uses `synchronize: false`; schema is created by `src/migrations/0001-initial-schema.ts`. `migration:generate` / `migration:run` / `migration:revert` npm scripts wired through `src/data-source.ts`. `test/integration/migrations.spec.ts` runs the migration against an in-memory SQLite and verifies every table.
+- **NFR-16 Branch coverage ≥ 85%.** Currently 85.35% branches / 97.36% statements / 95.57% functions / 98.68% lines. Jest threshold raised to `branches: 85, statements: 90, functions: 90, lines: 90`.
+- **NFR-11 / NFR-13 Logging.** `nestjs-pino` is wired through `LoggerModule.forRoot` with a `mixin` that pulls `correlationId`/`tenantId`/`employeeId`/`actorRole` from AsyncLocalStorage on every log line, and a `redact` config that strips `req.body.note`, `req.body.name`, `req.body.email`, and any `*.email` / `*.name` / `*.note` field. `test/integration/logging.spec.ts` captures one request's logs to a writable stream and asserts both correlation propagation and PII redaction.
+- **FR-23 dedicated e2e.** `test/e2e/fr23-post-commit-drift.spec.ts` arms the mock HCM `/admin/return-stale-on-success` toggle, approves a 5-day request, and asserts (a) request CONFIRMED, (b) `DriftEvent.kind = POST_COMMIT_DRIFT` row, (c) local cached balance snapped to the HCM-reported value. The emission was added to `RequestsService.approve`.
+- **NFR-17 ESLint + Prettier.** `.eslintrc.cjs` enforces `no-restricted-imports` for `src/**/domain/**` (no `typeorm`, `axios`, `@nestjs/common`, `@nestjs/core`). `.prettierrc` with project conventions. `npm run lint` / `lint:fix` / `format` scripts. CI runs lint between install and test.
+- **TRD §8.2 module layout.** Controllers split into `src/{balances,requests,reconciliation,health}/*.controller.ts`; entities colocated with their feature module. `src/controllers.ts` and `src/entities/index.ts` retained as re-export barrels for backwards compatibility.
 - State machine 100% statements/branches (`src/requests/domain/request.state-machine.ts`).
 - Nightly reconciler cron at 02:00 UTC (`src/reconciliation/reconciliation.cron.ts`, FR-15 / NFR-7) with unit test verifying registration and handler behaviour.
