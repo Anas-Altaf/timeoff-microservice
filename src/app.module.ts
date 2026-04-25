@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule, DynamicModule } from '@nestjs/c
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ALL_ENTITIES } from './entities';
+import { InitialSchema1700000000001 } from './migrations/0001-initial-schema';
 import { BalancesService } from './balances/balances.service';
 import { RequestsService } from './requests/requests.service';
 import { ReconciliationService } from './reconciliation/reconciliation.service';
@@ -24,6 +25,12 @@ export interface AppModuleOptions {
   hcmBaseUrl: string;
   hcmTimeoutMs?: number;
   hcmBackoffMs?: number[];
+  /**
+   * NFR-15: when true, schema is owned by migrations and `synchronize` is
+   * disabled. Production / staging should set this. Tests default to
+   * synchronize=true for speed against in-memory SQLite.
+   */
+  useMigrations?: boolean;
 }
 
 @Module({})
@@ -36,7 +43,10 @@ export class AppModule implements NestModule {
           type: 'better-sqlite3',
           database: opts.dbPath ?? ':memory:',
           entities: ALL_ENTITIES,
-          synchronize: true, // dev/test; production uses migrations
+          // NFR-15: production owns schema via migrations.
+          synchronize: !opts.useMigrations,
+          migrations: [InitialSchema1700000000001],
+          migrationsRun: !!opts.useMigrations,
           logging: false,
         }),
         TypeOrmModule.forFeature(ALL_ENTITIES),
