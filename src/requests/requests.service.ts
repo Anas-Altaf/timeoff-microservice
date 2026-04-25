@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { LeaveRequest, RequestAudit, HcmSyncEvent, Balance } from '../entities';
+import { LeaveRequest, RequestAudit, HcmSyncEvent, Balance, DriftEvent } from '../entities';
 import { DomainError } from '../common/errors';
 import { canSubmit } from '../balances/domain/balance.math';
 import {
@@ -24,6 +24,7 @@ export class RequestsService {
     @InjectRepository(LeaveRequest) private reqRepo: Repository<LeaveRequest>,
     @InjectRepository(RequestAudit) private auditRepo: Repository<RequestAudit>,
     @InjectRepository(HcmSyncEvent) private syncRepo: Repository<HcmSyncEvent>,
+    @InjectRepository(DriftEvent) private driftRepo: Repository<DriftEvent>,
     private balances: BalancesService,
     private hcm: HcmClient,
   ) {}
@@ -146,6 +147,45 @@ export class RequestsService {
         actor: actorId,
         releaseHold: days,
       });
+
+      // FR-23 / Sequence 10.5: post-commit drift detection.
+      // Compare expected post-commit balance with HCM-reported value; on mismatch,
+      // emit a POST_COMMIT_DRIFT event, snap the local cache to the HCM value
+      // (HCM wins), and log a warning.
+      const expected = parseFloat(balance.available) - days;
+      const reported = Number(result.newBalance);
+      if (Number.isFinite(reported) && Math.abs(reported - expected) >= 0.005) {
+        const driftDelta = reported - expected;
+        await this.driftRepo.save(
+          this.driftRepo.create({
+            balanceId: balance.id,
+            employeeId: r.employeeId,
+            locationId: r.locationId,
+            leaveType: r.leaveType,
+            localValue: expected.toFixed(2),
+            hcmValue: reported.toFixed(2),
+            delta: driftDelta.toFixed(2),
+            kind: 'POST_COMMIT_DRIFT',
+            source: 'HCM_REALTIME',
+            resolution: 'AUTO_APPLIED',
+          }),
+        );
+        // Snap local cache to HCM-reported value.
+        const reconciled = await this.balances.findOrThrow(r.tenantId, r.employeeId, r.locationId, r.leaveType);
+        await this.balances.commitLedger({
+          balanceId: reconciled.id,
+          delta: driftDelta,
+          reason: 'POST_COMMIT_DRIFT_SNAP',
+          source: 'HCM_REALTIME',
+          requestId: r.id,
+          hcmEventId: result.hcmEventId,
+          actor: 'SYSTEM',
+          releaseHold: 0,
+        });
+        this.log.warn(
+          `POST_COMMIT_DRIFT request=${r.id} expected=${expected.toFixed(2)} reported=${reported.toFixed(2)} delta=${driftDelta.toFixed(2)}`,
+        );
+      }
       return r;
     } catch (e) {
       if (e instanceof HcmRejectedError) {
