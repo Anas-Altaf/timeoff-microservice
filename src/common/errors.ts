@@ -46,6 +46,13 @@ export class DomainError extends Error {
 @Injectable()
 export class GlobalErrorFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
+    const ex: any = exception;
+    if (ex && typeof ex === 'object' && ex.code && !((exception as any) instanceof DomainError)) {
+      const knownCode = ex.code as string;
+      if (knownCode in ERROR_HTTP) {
+        exception = new DomainError(knownCode as ErrorCode, ex.message ?? knownCode);
+      }
+    }
     const ctx = host.switchToHttp();
     const res = ctx.getResponse<Response>();
     const req = ctx.getRequest<Request>();

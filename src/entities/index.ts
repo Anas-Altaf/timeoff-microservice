@@ -18,6 +18,7 @@ export class Balance {
   @Column('decimal', { precision: 10, scale: 2, default: 0 }) available!: string;
   @Column('decimal', { precision: 10, scale: 2, default: 0 }) pendingHold!: string;
   @Column({ type: 'datetime', nullable: true }) lastSyncedAt!: Date | null;
+
   @Column({ default: 'LOCAL' }) lastSource!: string;
   @Column({ default: 0 }) version!: number;
   @CreateDateColumn() createdAt!: Date;
@@ -30,8 +31,8 @@ export class BalanceLedger {
   @Column('decimal', { precision: 10, scale: 2 }) delta!: string;
   @Column() reason!: string;
   @Column() source!: string;
-  @Column({ nullable: true }) requestId!: string | null;
-  @Column({ nullable: true }) hcmEventId!: string | null;
+  @Column({ type: 'varchar', nullable: true }) requestId!: string | null;
+  @Column({ type: 'varchar', nullable: true }) hcmEventId!: string | null;
   @Column() actor!: string;
   @CreateDateColumn() @Index() createdAt!: Date;
 }
@@ -49,7 +50,7 @@ export class LeaveRequest {
   @Column() @Index() state!: string;
   @Column({ default: false }) requiresReview!: boolean;
   @Column() idempotencyKey!: string;
-  @Column({ nullable: true }) note!: string | null;
+  @Column({ type: 'varchar', nullable: true }) note!: string | null;
   @CreateDateColumn() createdAt!: Date;
 }
 
@@ -57,10 +58,10 @@ export class LeaveRequest {
 export class RequestAudit {
   @PrimaryGeneratedColumn('uuid') id!: string;
   @Column() @Index() requestId!: string;
-  @Column({ nullable: true }) fromState!: string | null;
+  @Column({ type: 'varchar', nullable: true }) fromState!: string | null;
   @Column() toState!: string;
   @Column() actor!: string;
-  @Column({ nullable: true }) reason!: string | null;
+  @Column({ type: 'varchar', nullable: true }) reason!: string | null;
   @CreateDateColumn() createdAt!: Date;
 }
 
@@ -70,16 +71,16 @@ export class HcmSyncEvent {
   @Column() direction!: string; // OUTBOUND | INBOUND
   @Column() kind!: string; // ADJUST_OK, ADJUST_FAIL, READ_OK, READ_FAIL, BATCH
   @Column('text') payloadJson!: string;
-  @Column({ nullable: true }) httpStatus!: number | null;
-  @Column({ nullable: true }) idempotencyKey!: string | null;
-  @Column({ nullable: true }) requestId!: string | null;
+  @Column({ type: 'int', nullable: true }) httpStatus!: number | null;
+  @Column({ type: 'varchar', nullable: true }) idempotencyKey!: string | null;
+  @Column({ type: 'varchar', nullable: true }) requestId!: string | null;
   @CreateDateColumn() createdAt!: Date;
 }
 
 @Entity('drift_events')
 export class DriftEvent {
   @PrimaryGeneratedColumn('uuid') id!: string;
-  @Column({ nullable: true }) balanceId!: string | null;
+  @Column({ type: 'varchar', nullable: true }) balanceId!: string | null;
   @Column() employeeId!: string;
   @Column() locationId!: string;
   @Column() leaveType!: string;
