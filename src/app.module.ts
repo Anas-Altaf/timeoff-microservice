@@ -1,9 +1,11 @@
 import { MiddlewareConsumer, Module, NestModule, DynamicModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ALL_ENTITIES } from './entities';
 import { BalancesService } from './balances/balances.service';
 import { RequestsService } from './requests/requests.service';
 import { ReconciliationService } from './reconciliation/reconciliation.service';
+import { ReconciliationCron } from './reconciliation/reconciliation.cron';
 import {
   BalancesController,
   RequestsController,
@@ -38,12 +40,14 @@ export class AppModule implements NestModule {
           logging: false,
         }),
         TypeOrmModule.forFeature(ALL_ENTITIES),
+        ScheduleModule.forRoot(),
       ],
       controllers: [BalancesController, RequestsController, InternalController, HealthController],
       providers: [
         BalancesService,
         RequestsService,
         ReconciliationService,
+        ReconciliationCron,
         IdempotencyService,
         {
           provide: HcmClient,
